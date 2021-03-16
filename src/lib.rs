@@ -1,3 +1,5 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery)]
+
 use rand::seq::index;
 pub struct Board {
     tiles: Vec<Tile>,
@@ -9,6 +11,7 @@ pub struct Board {
 }
 
 impl Board {
+    #[must_use]
     pub fn new(width: usize, height: usize, mines: usize) -> Self {
         let length = width * height;
 
@@ -30,7 +33,8 @@ impl Board {
         }
     }
 
-    fn get_coord(&self, x: usize, y: usize) -> Option<usize> {
+    #[must_use]
+    const fn get_coord(&self, x: usize, y: usize) -> Option<usize> {
         if x >= self.width || y >= self.height {
             None
         } else {
@@ -39,6 +43,7 @@ impl Board {
     }
 
     // TODO: convert to result
+    #[must_use]
     pub fn tile(&self, x: usize, y: usize) -> Option<Tile> {
         let coord = self.get_coord(x, y)?;
 
@@ -51,34 +56,38 @@ impl Board {
 
         let tile = &mut self.tiles[coord];
 
-        match tile.status {
-            TileStatus::Flagged => None,
-            _ => {
-                tile.status = TileStatus::Flagged;
-                self.turn += 1;
-                self.active_mines -= 1;
-                Some(())
-            }
+        if tile.status == TileStatus::Flagged {
+            None
+        } else {
+            tile.status = TileStatus::Flagged;
+            self.turn += 1;
+            self.active_mines -= 1;
+            Some(())
         }
     }
 
-    pub fn width(&self) -> usize {
+    #[must_use]
+    pub const fn width(&self) -> usize {
         self.width
     }
 
-    pub fn height(&self) -> usize {
+    #[must_use]
+    pub const fn height(&self) -> usize {
         self.height
     }
 
-    pub fn turn(&self) -> usize {
+    #[must_use]
+    pub const fn turn(&self) -> usize {
         self.turn
     }
 
-    pub fn mines(&self) -> usize {
+    #[must_use]
+    pub const fn mines(&self) -> usize {
         self.mines
     }
 
-    pub fn active_mines(&self) -> usize {
+    #[must_use]
+    pub const fn active_mines(&self) -> usize {
         self.active_mines
     }
 }
@@ -90,18 +99,21 @@ pub struct Tile {
 }
 
 impl Tile {
-    pub fn new(value: TileValue) -> Self {
+    #[must_use]
+    pub const fn new(value: TileValue) -> Self {
         Self {
             status: TileStatus::Blank,
             value,
         }
     }
 
-    pub fn status(&self) -> TileStatus {
+    #[must_use]
+    pub const fn status(&self) -> TileStatus {
         self.status
     }
 
-    pub fn value(&self) -> Option<TileValue> {
+    #[must_use]
+    pub const fn value(&self) -> Option<TileValue> {
         match self.status {
             TileStatus::Open => Some(self.value),
             _ => None,
@@ -109,13 +121,13 @@ impl Tile {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileStatus {
     Blank,
     Flagged,
     Open,
 }
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileValue {
     Mine,
     Neighbored(usize),
