@@ -1,5 +1,7 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery)]
 
+use std::collections::HashSet;
+
 use rand::seq::index;
 pub struct Board {
     tiles: Vec<Tile>,
@@ -15,12 +17,23 @@ impl Board {
     pub fn new(width: usize, height: usize, mines: usize) -> Self {
         let length = width * height;
 
-        let mut tiles = vec![Tile::new(TileValue::Neighbored(0)); length];
-
         let mut rng = rand::thread_rng();
 
-        for index in index::sample(&mut rng, length, mines) {
-            tiles[index] = Tile::new(TileValue::Mine);
+        let mut tiles: Vec<Tile> = Vec::with_capacity(length);
+
+        let mine_indices: HashSet<usize> = index::sample(&mut rng, length, mines).iter().collect();
+
+        for index in 0..length {
+            if mine_indices.contains(&index) {
+                tiles.push(Tile::new(TileValue::Mine));
+            } else {
+                tiles.push(Tile::new(TileValue::Neighbored(num_mine_neighbors(
+                    index,
+                    width,
+                    height,
+                    &mine_indices,
+                ))));
+            }
         }
 
         Self {
@@ -90,6 +103,57 @@ impl Board {
     pub const fn active_mines(&self) -> usize {
         self.active_mines
     }
+}
+
+fn num_mine_neighbors(
+    index: usize,
+    width: usize,
+    height: usize,
+    mine_indices: &HashSet<usize>,
+) -> usize {
+    let x = index % width;
+    let y = index / width;
+
+    let has_left = x == 0;
+    let has_upper = y == 0;
+    let has_right = x == width - 1;
+    let has_lower = y == height - 1;
+
+    let mut mine_neighbors = 0;
+
+    if has_left && mine_indices.contains(&(index - 1)) {
+        mine_neighbors += 1;
+    }
+
+    if has_right && mine_indices.contains(&(index + 1)) {
+        mine_neighbors += 1;
+    }
+
+    if has_upper && mine_indices.contains(&(index - width)) {
+        mine_neighbors += 1;
+    }
+
+    if has_lower && mine_indices.contains(&(index + width)) {
+        mine_neighbors += 1;
+    }
+
+    if has_left && has_upper && mine_indices.contains(&(index - 1 - width)) {
+        mine_neighbors += 1;
+    }
+
+    if has_left && has_lower && mine_indices.contains(&(index - 1 + width)) {
+        mine_neighbors += 1;
+    }
+
+    if has_right && has_upper && mine_indices.contains(&(index + 1 - width)) {
+        mine_neighbors += 1;
+    }
+
+    if has_right && has_lower && mine_indices.contains(&(index + 1 + width)) {
+        mine_neighbors += 1;
+    }
+
+    mine_neighbors
 }
 
 #[derive(Clone, Copy)]
